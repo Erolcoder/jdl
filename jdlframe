@@ -1,0 +1,139 @@
+package jaddel;
+
+import javax.swing.*;
+import java.awt.*;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
+import java.util.ArrayList;
+
+public class JaddleFrame extends JFrame {
+
+    private JLabel levelLabel;
+    private JLabel pointsLabel;
+    private JLabel livesLabel;
+    private JTextArea riddleArea;
+    private JTextField answerField;
+    private JButton submitButton;
+    private JButton playLevel1Button;
+    private JButton playLevel2Button;
+    private JButton exitButton;
+
+    private Jaddle jaddle; // Reference to the main game logic class
+    private ArrayList<Riddle> currentRiddles;
+    private int currentRiddleIndex;
+
+    public JaddleFrame(Jaddle jaddle) {
+        this.jaddle = jaddle;
+        initComponents();
+        updateGameState(); // Display initial game state
+    }
+
+    private void initComponents() {
+        setTitle("Jaddle Game");
+        setSize(500, 400);
+        setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+        setLayout(new BorderLayout());
+
+        // Top panel for level, points, and lives
+        JPanel topPanel = new JPanel(new FlowLayout());
+        levelLabel = new JLabel("Level: " + jaddle.getCurrentLevel());
+        pointsLabel = new JLabel("Points: " + jaddle.getPoints());
+        livesLabel = new JLabel("Lives: " + jaddle.getLives());
+        topPanel.add(levelLabel);
+        topPanel.add(pointsLabel);
+        topPanel.add(livesLabel);
+
+        // Center panel for riddle and answer input
+        JPanel centerPanel = new JPanel(new BorderLayout());
+        riddleArea = new JTextArea("Welcome to Jaddle! Choose a level to start.");
+        riddleArea.setEditable(false);
+        riddleArea.setLineWrap(true);
+        riddleArea.setWrapStyleWord(true);
+        centerPanel.add(new JScrollPane(riddleArea), BorderLayout.CENTER);
+
+        answerField = new JTextField();
+        centerPanel.add(answerField, BorderLayout.SOUTH);
+
+        // Bottom panel for buttons
+        JPanel bottomPanel = new JPanel(new FlowLayout());
+        submitButton = new JButton("Submit Answer");
+        submitButton.addActionListener(new SubmitAnswerListener());
+        playLevel1Button = new JButton("Play Level 1");
+        playLevel2Button = new JButton("Play Level 2");
+        playLevel2Button.setEnabled(false); // Only enable if level 2 is unlocked
+        exitButton = new JButton("Exit");
+
+        // Adding listeners to buttons
+        playLevel1Button.addActionListener(e -> startLevel(1));
+        playLevel2Button.addActionListener(e -> startLevel(2));
+        exitButton.addActionListener(e -> System.exit(0));
+
+        bottomPanel.add(playLevel1Button);
+        bottomPanel.add(playLevel2Button);
+        bottomPanel.add(submitButton);
+        bottomPanel.add(exitButton);
+
+        add(topPanel, BorderLayout.NORTH);
+        add(centerPanel, BorderLayout.CENTER);
+        add(bottomPanel, BorderLayout.SOUTH);
+    }
+
+    private void startLevel(int level) {
+        if (level == 1) {
+            currentRiddles = jaddle.getLevel1Riddles();
+        } else if (level == 2) {
+            currentRiddles = jaddle.getLevel2Riddles();
+        }
+        currentRiddleIndex = 0;
+        displayCurrentRiddle();
+        answerField.setText("");
+        levelLabel.setText("Level: " + jaddle.getCurrentLevel());
+    }
+
+    private void displayCurrentRiddle() {
+        if (currentRiddleIndex < currentRiddles.size()) {
+            Riddle currentRiddle = currentRiddles.get(currentRiddleIndex);
+            riddleArea.setText(currentRiddle.getRiddle());
+        } else {
+            riddleArea.setText("No more riddles left in this level!");
+        }
+    }
+
+    private void updateGameState() {
+        pointsLabel.setText("Points: " + jaddle.getPoints());
+        livesLabel.setText("Lives: " + jaddle.getLives());
+        if (jaddle.isLevel2Unlocked()) {
+            playLevel2Button.setEnabled(true);
+        }
+    }
+
+    private class SubmitAnswerListener implements ActionListener {
+        @Override
+        public void actionPerformed(ActionEvent e) {
+            if (currentRiddleIndex >= currentRiddles.size()) {
+                riddleArea.setText("No more riddles. Choose another level.");
+                return;
+            }
+
+            String userAnswer = answerField.getText().trim();
+            Riddle currentRiddle = currentRiddles.get(currentRiddleIndex);
+
+            if (jaddle.checkAnswer(currentRiddle, userAnswer)) {
+                riddleArea.setText("Correct! +10 Points");
+            } else {
+                riddleArea.setText("Incorrect! -5 Points");
+            }
+
+            answerField.setText("");
+            currentRiddleIndex++;
+            updateGameState();
+            displayCurrentRiddle();
+        }
+    }
+
+    public static void main(String[] args) {
+        Jaddle jaddle = new Jaddle();
+        JaddleFrame frame = new JaddleFrame(jaddle);
+        frame.setVisible(true);
+    }
+}
