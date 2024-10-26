@@ -1,0 +1,132 @@
+package jaddel;
+
+import java.io.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Scanner;
+
+public class Jaddle {
+    private static final int MAX_LIVES = 5;
+    private static int currentLives = MAX_LIVES;
+    private static long lastLifeLostTime = 0;
+    private static final long REGENERATION_TIME = 2 * 5 * 1000; // 30 seconds in milliseconds
+
+    private static int points = 0;
+    private static final int POINTS_PER_CORRECT_ANSWER = 10;
+    private static final int POINTS_DEDUCT_WRONG_ANSWER = 5;
+    private static final int LEVEL_2_UNLOCK_POINTS = 30; // Points needed to unlock Level 2
+
+    private static int currentLevel = 1; // Track the player's current level
+    private ArrayList<Riddle> LVL1;
+    private ArrayList<Riddle> LVL2;
+
+    public Jaddle() {
+        loadRiddles();
+    }
+
+    private void loadRiddles() {
+        // Initialize riddles for each level
+        LVL1 = new ArrayList<>(Arrays.asList(
+                new Riddle("Dalawang balon, hindi malingon", "Ears,ears,Ear,ear,Tenga,tenga,Tainga,tainga"),
+                new Riddle("Ako ay may ., kasama ko kahit saan.", "Shadow,shadow,Anino,anino"),
+                new Riddle("Buto't balat, Lumilipad. Ano ako?", "Kite,kite,Sarangola,saranggola,Saranggola,saranggola"),
+                new Riddle("Isang prinsesa, nakaupo sa tasa.", "Kasoy,kasoy"),
+                new Riddle("Kung kailan mo pinatay, saka pa humaba ang buhay.", "Candle,candle,Kandila,kandila"),
+                new Riddle("Hindi tao, hindi hayop, ngunit lumuluha.", "Gripo,gripo")
+        ));
+
+        LVL2 = new ArrayList<>(Arrays.asList(
+                new Riddle("This is a Level 2 riddle.", "Answer")
+        ));
+    }
+
+    public ArrayList<Riddle> getLevel1Riddles() {
+        return LVL1;
+    }
+
+    public ArrayList<Riddle> getLevel2Riddles() {
+        return LVL2;
+    }
+
+    public boolean checkAnswer(Riddle riddle, String userAnswer) {
+        if (riddle.checkAnswer(userAnswer)) {
+            points += POINTS_PER_CORRECT_ANSWER;
+            return true;
+        } else {
+            points -= POINTS_DEDUCT_WRONG_ANSWER;
+            loseLife();
+            return false;
+        }
+    }
+
+    public int getPoints() {
+        return points;
+    }
+
+    public int getCurrentLevel() {
+        return currentLevel;
+    }
+
+    public int getLives() {
+        return currentLives;
+    }
+
+    private void loseLife() {
+        currentLives--;
+        lastLifeLostTime = System.currentTimeMillis();
+    }
+
+    public boolean isLevel2Unlocked() {
+        if (points >= LEVEL_2_UNLOCK_POINTS && currentLevel == 1) {
+            currentLevel = 2;
+            saveProgress();
+            return true;
+        }
+        return false;
+    }
+
+    private void saveProgress() {
+        try (PrintWriter writer = new PrintWriter("progress.txt")) {
+            writer.println(currentLevel);
+            writer.println(points);
+            writer.println(currentLives);
+        } catch (IOException e) {
+            System.out.println("Error saving progress: " + e.getMessage());
+        }
+    }
+
+    // Method to load progress (can be modified as needed)
+    private void loadProgress() {
+        try (BufferedReader reader = new BufferedReader(new FileReader("progress.txt"))) {
+            currentLevel = Integer.parseInt(reader.readLine());
+            points = Integer.parseInt(reader.readLine());
+            currentLives = Integer.parseInt(reader.readLine());
+        } catch (IOException | NumberFormatException e) {
+            System.out.println("No saved progress found. Starting fresh.");
+        }
+    }
+}
+
+class Riddle {
+    private String riddle;
+    private List<String> answers;
+
+    public Riddle(String riddle, String answersString) {
+        this.riddle = riddle;
+        this.answers = Arrays.asList(answersString.split(","));
+    }
+
+    public String getRiddle() {
+        return riddle;
+    }
+
+    public boolean checkAnswer(String userAnswer) {
+        for (String answer : answers) {
+            if (answer.equalsIgnoreCase(userAnswer.trim())) {
+                return true;
+            }
+        }
+        return false;
+    }
+}
