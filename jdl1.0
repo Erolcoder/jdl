@@ -1,0 +1,185 @@
+package jabble2.pkg0;
+
+import java.io.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Scanner;
+
+
+public class Jaddle {
+
+    private static final int MAX_LIVES = 5;
+    private static int currentLives = MAX_LIVES;
+    private static long lastLifeLostTime = 0;
+    private static final long REGENERATION_TIME = 2 * 5 * 1000; // 30 seconds in milliseconds
+
+    private static int points = 0;
+    private static final int POINTS_PER_CORRECT_ANSWER = 10;
+    private static final int POINTS_DEDUCT_WRONG_ANSWER = 5;
+    private static final int LEVEL_2_UNLOCK_POINTS = 30; // Points needed to unlock Level 2
+
+    private static int currentLevel = 1; // Track the player's current level
+
+    public static void main(String[] args) {
+        ArrayList<Riddle> LVL1 = new ArrayList<>();
+        ArrayList<Riddle> LVL2 = new ArrayList<>();
+        Scanner scan = new Scanner(System.in);
+
+        // Level 1 Riddles
+        LVL1.add(new Riddle("Dalawang balon, hindi malingon", "Ears,ears,Ear,ear,Tenga,tenga,Tainga,tainga"));
+        LVL1.add(new Riddle("Ako ay may kaibigan, kasama ko kahit saan.", "Shadow,shadow,Anino,anino"));
+      LVL1.add(new Riddle("Buto't balat, Lumilipad. Ano ako?", "Kite,kite,Sarangola,saranggola,Saranggola,saranggola"));
+        LVL1.add(new Riddle("Isang prinsesa, nakaupo sa tasa.", "Kasoy,kasoy"));
+        LVL1.add(new Riddle("Kung kailan mo pinatay, saka pa humaba ang buhay.", "Candle,candle,Kandila,kandila"));
+        LVL1.add(new Riddle("Hindi tao, hindi hayop, ngunit lumuluha.", "Gripo,gripo")); 
+     
+        // Level 2 Riddles (placeholder, add your own riddles here)
+        LVL2.add(new Riddle("This is a Level 2 riddle.", "Answer"));
+
+        // Load progress if available
+        loadProgress();
+
+        // Main game loop with level selection and exit option
+        while (true) {
+            System.out.println("Current Level: " + currentLevel + ", Points: " + points + ", Lives: " + currentLives);
+            System.out.println("Choose an option:");
+            System.out.println("1. Play Level 1");
+            if (currentLevel >= 2) {
+                System.out.println("2. Play Level 2");
+            }
+            System.out.println("3. Exit");
+
+            String choice = scan.nextLine();
+
+            if (choice.equals("1")) {
+                System.out.println ("***** WELCOME TO LEVEL 1 *****");
+                playLevel(scan, LVL1);
+                if (points >= LEVEL_2_UNLOCK_POINTS && currentLevel == 1) {
+                    currentLevel = 2;
+                    System.out.println("Congratulations! You've unlocked Level 2.");
+                    saveProgress();
+                }
+            } else if (choice.equals("2") && currentLevel >= 2) {
+                System.out.println ("***** WELCOME TO LEVEL 2 *****");
+                playLevel(scan, LVL2);
+                saveProgress(); // Save progress after playing Level 2
+            } else if (choice.equals("3")) {
+                System.out.println("Exiting the game. Goodbye!");
+                break; // Exit the game loop
+            } else {
+                System.out.println("Invalid option. Please try again.");
+            }
+        }
+    }
+
+    // Method to play a level
+    private static void playLevel(Scanner scan, ArrayList<Riddle> riddles) {
+        for (Riddle riddle : riddles) {
+            if (currentLives == 0) {
+                System.out.println("Wala ka nang buhay! Hintay ka muna bago sumagot ulit.");
+                waitForLifeRegeneration();
+            }
+            
+            System.out.println("Buhay: " + currentLives + " | Points: " + points); // Display remaining lives and points
+            System.out.println(riddle.getRiddle());
+            String userAnswer = scan.nextLine();
+
+            if (riddle.checkAnswer(userAnswer)) {
+                System.out.println("Tama! +10 Points");
+                points += POINTS_PER_CORRECT_ANSWER;
+            } else {
+                System.out.println("Mali! -5 Points");
+                points -= POINTS_DEDUCT_WRONG_ANSWER;
+                loseLife(); // Deduct a life if the answer is wrong
+            }
+
+            System.out.println(); // Blank line for readability between riddles
+        }
+    }
+
+    // Method to handle losing a life
+    private static void loseLife() {
+        currentLives--;
+        lastLifeLostTime = System.currentTimeMillis();
+        System.out.println("Nawalan ka ng isang buhay! Buhay na natitira: " + currentLives);
+    }
+
+    // Method to wait for life regeneration
+    private static void waitForLifeRegeneration() {
+        while (currentLives < MAX_LIVES) {
+            long currentTime = System.currentTimeMillis();
+            long timeSinceLastLifeLost = currentTime - lastLifeLostTime;
+
+            if (timeSinceLastLifeLost >= REGENERATION_TIME) {
+                currentLives++;
+                lastLifeLostTime = System.currentTimeMillis(); // Update last life lost time
+                System.out.println("Nadagdagan ang buhay mo! Buhay na natitira: " + currentLives);
+            } else {
+                long timeRemaining = REGENERATION_TIME - timeSinceLastLifeLost;
+                System.out.println("Naghihintay... Buhay regenerates in: " + (timeRemaining / 1000) + " seconds.");
+                try {
+                    Thread.sleep(5000); // Check every 5 seconds
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
+            }
+        }
+    }
+
+    // Method to save progress to a file
+    private static void saveProgress() {
+        try (PrintWriter writer = new PrintWriter("progress.txt")) {
+            writer.println(currentLevel);
+            writer.println(points);
+            writer.println(currentLives);
+            System.out.println("Progress saved!");
+        } catch (IOException e) {
+            System.out.println("Error saving progress: " + e.getMessage());
+        }
+    }
+
+    // Method to load progress from a file
+    private static void loadProgress() {
+        try (BufferedReader reader = new BufferedReader(new FileReader("progress.txt"))) {
+            currentLevel = Integer.parseInt(reader.readLine());
+            points = Integer.parseInt(reader.readLine());
+            currentLives = Integer.parseInt(reader.readLine());
+            System.out.println("Progress loaded! Current Level: " + currentLevel + ", Points: " + points + ", Lives: " + currentLives);
+        } catch (FileNotFoundException e) {
+            System.out.println("No saved progress found. Starting fresh.");
+        } catch (IOException | NumberFormatException e) {
+            System.out.println("Error loading progress: " + e.getMessage());
+        }
+    }
+}
+
+// Riddle class with multiple answers split from a single string
+class Riddle {
+    private String riddle;
+    private List<String> answers; // Store multiple correct answers
+
+    public Riddle(String riddle, String answersString) {
+        this.riddle = riddle;
+        this.answers = Arrays.asList(answersString.split(","));
+    }
+
+    public String getRiddle() {
+        return riddle;
+    }
+
+    // Check if the user's answer matches any of the possible answers
+    public boolean checkAnswer(String userAnswer) {
+        for (String answer : answers) {
+            if (answer.equalsIgnoreCase(userAnswer.trim())) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    // Getter for the list of answers (for displaying the correct answers)
+    public List<String> getAnswers() {
+        return answers;
+    }
+}
